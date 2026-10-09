@@ -1,0 +1,1235 @@
+/**
+ * Super Kudla Express — Master Stylesheet
+ * Mangaluru Central Platform 1 Theme.
+ * Palette: Terracotta, Laterite, Gold, Indian Railways Yellow.
+ */
+
+:root {
+  /* Mangaluru Station Palette Tokens (from Config.PALETTE) */
+  --terracotta: #C2512A;
+  --terracotta-dark: #8E3A1E;
+  --terracotta-light: #E07A4F;
+  --laterite: #A04A2E;
+  --laterite-dark: #6B2D1B;
+  --laterite-pore: #3F1A10;
+  --gold: #F4B41A;
+  --gold-dark: #B9800C;
+  --gold-light: #FFD866;
+  --used-block: #6E4B33;
+  --cream: #F3E3C3;
+  --dado: #8E2F22;
+  --door-green: #2F5D3A;
+  --pillar-green: #2F4F3A;
+  --ir-yellow: #FFD100;
+  --ink: #151515;
+  --led-amber: #FFB000;
+  --rail-steel: #8A8F96;
+  --sleeper: #A19E97;
+  --ballast: #7D7468;
+  --platform-stone: #B9B4AA;
+  --coach-blue: #1F4E9C;
+  --loco-red: #B3261E;
+
+  /* Fonts */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-display: 'Baloo 2', 'Trebuchet MS', 'Segoe UI', sans-serif;
+  --font-kannada: 'Noto Sans Kannada', 'Kannada Sangam MN', 'Tunga', 'Nirmala UI', sans-serif;
+  --font-devanagari: 'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Mangal', 'Nirmala UI', sans-serif;
+
+  /* Shadows and Transitions */
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-plate: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.25s ease-out;
+}
+
+/* Reset and Core Layout */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--ink);
+  color: var(--cream);
+  font-family: var(--font-display);
+  user-select: none;
+  -webkit-user-select: none;
+  text-rendering: optimizeLegibility;
+}
+
+.game-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ==========================================================================
+   Full-Screen Overlays (Crosshair & Flashes)
+   ========================================================================== */
+
+.hud-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.hud-crosshair.is-hidden {
+  display: none !important;
+}
+
+.hud-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.hud-flash.flash-hurt {
+  background: radial-gradient(circle at center, transparent 35%, rgba(179, 38, 30, 0.75) 100%);
+  opacity: 1;
+}
+
+.hud-flash.flash-power {
+  background: radial-gradient(circle at center, rgba(255, 216, 102, 0.5) 0%, rgba(244, 180, 26, 0.25) 55%, transparent 100%);
+  opacity: 1;
+}
+
+.hud-flash.flash-star {
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.35) 0%, rgba(244, 180, 26, 0.3) 60%, transparent 100%);
+  opacity: 1;
+  animation: starRainbowCycle 1.2s linear infinite;
+}
+
+.hud-flash.flash-none {
+  opacity: 0;
+}
+
+@keyframes starRainbowCycle {
+  0% { filter: hue-rotate(0deg); opacity: 0.4; }
+  50% { filter: hue-rotate(180deg); opacity: 0.6; }
+  100% { filter: hue-rotate(360deg); opacity: 0.4; }
+}
+
+/* ==========================================================================
+   HUD Layout and Components
+   ========================================================================== */
+
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: clamp(8px, 1.5vw, 16px) clamp(12px, 2.5vw, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.hud.is-hidden {
+  display: none !important;
+}
+
+.hud-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hud-group {
+  background-color: rgba(21, 21, 21, 0.88);
+  border: 1px solid var(--laterite-dark);
+  border-radius: 4px;
+  padding: 6px 12px;
+  box-shadow: var(--shadow-plate);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+}
+
+.hud-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--gold-light);
+  text-transform: uppercase;
+}
+
+.hud-value {
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  color: #FFF;
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+
+.hud-group-time .hud-value.is-hurry {
+  animation: hurryPulse 0.5s steps(2, start) infinite;
+}
+
+@keyframes hurryPulse {
+  0%, 100% { color: var(--loco-red); }
+  50% { color: var(--ir-yellow); }
+}
+
+.hud-group-status {
+  flex-direction: row;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.hud-tag {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  background-color: var(--laterite-pore);
+  border: 1px solid var(--laterite);
+  color: var(--gold-light);
+  padding: 4px 6px;
+  border-radius: 3px;
+}
+
+.hud-tag.is-muted {
+  color: var(--loco-red);
+  border-color: var(--loco-red);
+}
+
+/* Rail Line Progress Bar */
+.hud-progress-bar {
+  background-color: rgba(21, 21, 21, 0.88);
+  border: 1px solid var(--laterite-dark);
+  border-radius: 4px;
+  padding: 6px 16px;
+  box-shadow: var(--shadow-plate);
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.rail-track {
+  position: relative;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--sleeper) 0px,
+    var(--sleeper) 3px,
+    transparent 3px,
+    transparent 16px
+  );
+  border-top: 2px solid var(--rail-steel);
+  border-bottom: 2px solid var(--rail-steel);
+}
+
+.rail-station {
+  position: absolute;
+  top: -15px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--cream);
+  letter-spacing: 0.5px;
+}
+
+.start-station { left: 0; }
+.end-station { right: 0; color: var(--gold); }
+
+.rail-checkpoint-marker {
+  position: absolute;
+  top: -15px;
+  left: 55%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--terracotta-light);
+}
+
+.rail-checkpoint-marker::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 16px;
+  background-color: var(--terracotta-light);
+}
+
+.rail-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(244, 180, 26, 0.3) 0%, rgba(244, 180, 26, 0.7) 100%);
+  border-right: 2px solid var(--gold);
+}
+
+.rail-player-marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  background-color: var(--ir-yellow);
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 6px rgba(255, 209, 0, 0.8);
+  border-radius: 50%;
+  z-index: 2;
+  transition: left 0.1s linear;
+}
+
+/* Toast Ticker */
+.hud-toast {
+  align-self: center;
+  background-color: #151515;
+  border: 2px solid var(--ir-yellow);
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 8px 24px;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+  max-width: 90vw;
+  text-align: center;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.hud-toast.is-hidden {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.hud-toast.toast-power { border-color: var(--gold); }
+.hud-toast.toast-warn { border-color: var(--loco-red); color: #FFAAAA; }
+.hud-toast.toast-bonus { border-color: var(--coach-blue); color: #BBDDFF; }
+
+/* ==========================================================================
+   Screen System
+   ========================================================================== */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: clamp(12px, 2vw, 28px);
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.screen.is-active {
+  display: flex;
+}
+
+/* Indian Railways Signboards */
+.ir-signboard {
+  background-color: var(--ir-yellow);
+  color: var(--ink);
+  border: 5px solid var(--ink);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+  border-radius: 6px;
+  padding: 12px 24px;
+}
+
+.ir-signboard-small {
+  padding: 10px 20px;
+  max-width: 420px;
+  margin: 0 auto 16px;
+}
+
+.ir-signboard-small .kannada-text {
+  font-family: var(--font-kannada);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.ir-signboard-small .devanagari-text {
+  font-family: var(--font-devanagari);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.ir-signboard-small .latin-text {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.ir-signboard-main {
+  width: 100%;
+  max-width: 900px;
+  padding: clamp(8px, 1.2vw, 12px) clamp(16px, 2.5vw, 28px);
+  margin: 0 auto;
+}
+
+.signboard-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.signboard-kannada {
+  font-family: var(--font-kannada);
+  font-size: 16px;
+}
+
+.signboard-code {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  background-color: var(--ink);
+  color: var(--ir-yellow);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.signboard-title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3.2vw, 36px);
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--ink);
+  line-height: 1.1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kannada-badge {
+  font-family: var(--font-kannada);
+  font-size: 18px;
+  font-weight: 800;
+  background-color: var(--loco-red);
+  color: #FFF;
+  padding: 2px 10px;
+  border-radius: 4px;
+  letter-spacing: 0;
+}
+
+.signboard-tagline {
+  font-family: var(--font-display);
+  font-size: clamp(12px, 1.5vw, 15px);
+  font-weight: 600;
+  margin-top: 4px;
+  color: #222;
+}
+
+/* ==========================================================================
+   Title Screen (3-Column Layout)
+   ========================================================================== */
+
+.screen-title {
+  background-color: var(--ink);
+  background-image: url('assets/keyart.jpg'), linear-gradient(180deg, #151515 0%, #3F1A10 35%, #8E3A1E 70%, #151515 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+.title-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(15, 12, 10, 0.65) 0%, rgba(15, 12, 10, 0.88) 100%);
+  z-index: 1;
+}
+
+.title-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1220px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: auto;
+}
+
+.title-body {
+  display: grid;
+  grid-template-columns: 1fr 0.95fr 1.05fr;
+  gap: clamp(10px, 1.5vw, 16px);
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .title-body {
+    grid-template-columns: 1fr;
+  }
+  .title-col-legend {
+    grid-column: span 1;
+  }
+}
+
+.title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Cards */
+.story-card, .controls-card, .legend-card {
+  background-color: rgba(21, 21, 21, 0.92);
+  border: 1px solid var(--laterite-dark);
+  border-radius: 6px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.card-heading {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  border-bottom: 1px solid rgba(244, 180, 26, 0.3);
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.story-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cream);
+}
+
+/* Edmondson Card Platform Ticket Start Button */
+.ticket-action-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.edmondson-ticket {
+  width: 100%;
+  background-color: var(--cream);
+  color: var(--ink);
+  border: none;
+  border-radius: 4px;
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  outline: none;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  border-left: 6px dashed var(--laterite);
+  border-right: 6px dashed var(--laterite);
+}
+
+.edmondson-ticket:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.8);
+}
+
+.edmondson-ticket:active {
+  transform: translateY(1px);
+}
+
+.edmondson-ticket:focus-visible {
+  outline: 3px solid var(--ir-yellow);
+  outline-offset: 4px;
+}
+
+.ticket-header {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: var(--laterite-dark);
+}
+
+.ticket-serial {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--loco-red);
+  letter-spacing: 2px;
+}
+
+.ticket-main-action {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--ink);
+  margin: 2px 0;
+}
+
+.ticket-validity {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: 0.5px;
+}
+
+.title-best-record {
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  color: var(--gold-light);
+  letter-spacing: 1px;
+}
+
+/* Controls Table */
+.controls-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.controls-table th, .controls-table td {
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.controls-table th {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.controls-table td:first-child {
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.controls-table td:nth-child(2) {
+  font-family: var(--font-display);
+  color: #DDD;
+}
+
+.controls-table td:nth-child(3) {
+  color: #AAA;
+  font-size: 11px;
+}
+
+/* Legend Grid */
+.legend-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: none;
+  overflow-y: visible;
+  padding-right: 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(30, 20, 15, 0.6);
+  border: 1px solid var(--laterite-dark);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+.legend-icon-slot {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  background-color: var(--laterite-pore);
+  border: 1px solid var(--laterite);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.legend-icon-slot img, .legend-icon-slot canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.icon-text-badge {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--gold-light);
+  text-align: center;
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.legend-text strong {
+  font-size: 11px;
+  color: var(--gold-light);
+}
+
+.legend-text span {
+  color: #CCC;
+  font-size: 9.5px;
+}
+
+@media (max-height: 649px) {
+  .screen-title {
+    padding: 6px 10px;
+  }
+  .title-container {
+    gap: 6px;
+  }
+  .ir-signboard-main {
+    padding: 4px 12px;
+    border-width: 3px;
+  }
+  .signboard-top-row {
+    font-size: 10px;
+    margin-bottom: 0;
+  }
+  .signboard-kannada {
+    font-size: 12px;
+  }
+  .signboard-code {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+  .signboard-title {
+    font-size: 18px;
+  }
+  .kannada-badge {
+    font-size: 13px;
+    padding: 1px 6px;
+  }
+  .signboard-tagline {
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .title-body {
+    gap: 8px;
+  }
+  .title-col {
+    gap: 6px;
+  }
+  .story-card, .controls-card, .legend-card {
+    padding: 6px 8px;
+  }
+  .card-heading {
+    font-size: 10px;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+  }
+  .story-text {
+    font-size: 10.5px;
+    line-height: 1.25;
+  }
+  .edmondson-ticket {
+    padding: 6px 8px;
+    gap: 1px;
+  }
+  .ticket-header, .ticket-validity {
+    font-size: 8.5px;
+  }
+  .ticket-serial {
+    font-size: 9px;
+  }
+  .ticket-main-action {
+    font-size: 14px;
+    margin: 1px 0;
+  }
+  .title-best-record {
+    font-size: 10px;
+  }
+  .controls-table {
+    font-size: 10px;
+  }
+  .controls-table th, .controls-table td {
+    padding: 2px 4px;
+  }
+  .controls-table td:nth-child(3) {
+    font-size: 9.5px;
+  }
+  .legend-grid {
+    gap: 2px;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .legend-item {
+    padding: 2px 4px;
+    gap: 5px;
+  }
+  .legend-icon-slot {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+  }
+  .legend-text {
+    line-height: 1.05;
+  }
+  .legend-text strong {
+    font-size: 9.5px;
+  }
+  .legend-text span {
+    font-size: 8.5px;
+  }
+}
+
+/* ==========================================================================
+   Pause Screen (Amber LED Departure Board)
+   ========================================================================== */
+
+.screen-pause {
+  background-color: rgba(10, 8, 7, 0.88);
+}
+
+.led-board-panel {
+  width: 100%;
+  max-width: 660px;
+  background-color: #0C0A08;
+  border: 4px solid #332410;
+  border-radius: 8px;
+  box-shadow: 0 0 32px rgba(255, 176, 0, 0.15), var(--shadow-card);
+  padding: 20px;
+  position: relative;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.35) 0px,
+    rgba(0, 0, 0, 0.35) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.led-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 2px solid var(--led-amber);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+.led-status-dot {
+  width: 12px;
+  height: 12px;
+  background-color: var(--led-amber);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--led-amber);
+  animation: ledBlink 1s infinite alternate;
+}
+
+@keyframes ledBlink {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.led-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--led-amber);
+  text-shadow: 0 0 8px rgba(255, 176, 0, 0.6);
+}
+
+.led-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: rgba(255, 176, 0, 0.04);
+  border: 1px solid rgba(255, 176, 0, 0.25);
+  border-radius: 4px;
+}
+
+.setting-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--led-amber);
+  letter-spacing: 1px;
+}
+
+.led-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #2A1D05;
+  border: 1px solid var(--led-amber);
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  width: 140px;
+}
+
+.led-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--led-amber);
+  box-shadow: 0 0 6px var(--led-amber);
+  cursor: pointer;
+}
+
+.led-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--led-amber);
+  cursor: pointer;
+}
+
+.led-buttons-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Generic IR Button Styles */
+.ir-button {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 10px 18px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+  outline: none;
+}
+
+.ir-button-primary {
+  background-color: var(--ir-yellow);
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgba(255, 209, 0, 0.3);
+}
+
+.ir-button-primary:hover {
+  background-color: #FFE033;
+  transform: translateY(-2px);
+}
+
+.ir-button-secondary {
+  background-color: var(--laterite-dark);
+  color: var(--cream);
+  border: 1px solid var(--laterite);
+}
+
+.ir-button-secondary:hover {
+  background-color: var(--laterite);
+  transform: translateY(-2px);
+}
+
+.ir-button:active {
+  transform: translateY(1px);
+}
+
+.ir-button:focus-visible {
+  outline: 3px solid var(--ir-yellow);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Loading Screen
+   ========================================================================== */
+
+.screen-loading {
+  background-color: var(--ink);
+}
+
+.loading-panel {
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+}
+
+.loading-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--gold-light);
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.loading-bar-wrapper {
+  width: 100%;
+  height: 12px;
+  background-color: var(--laterite-pore);
+  border: 2px solid var(--laterite);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.loading-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--terracotta) 0%, var(--gold) 100%);
+  transition: width 0.15s ease-out;
+}
+
+.loading-label {
+  font-size: 13px;
+  color: var(--cream);
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   Dead Screen
+   ========================================================================== */
+
+.screen-dead {
+  background: radial-gradient(circle at center, rgba(142, 47, 34, 0.75) 0%, rgba(21, 21, 21, 0.95) 100%);
+}
+
+.dead-panel {
+  text-align: center;
+}
+
+.dead-title {
+  font-family: var(--font-display);
+  font-size: clamp(52px, 10vw, 84px);
+  font-weight: 800;
+  color: var(--loco-red);
+  letter-spacing: 4px;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+  margin-bottom: 12px;
+}
+
+.dead-subtitle {
+  font-family: var(--font-pixel);
+  font-size: 18px;
+  color: var(--cream);
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.dead-prompt {
+  font-size: 14px;
+  color: #AAA;
+}
+
+/* ==========================================================================
+   Game Over Screen
+   ========================================================================== */
+
+.screen-gameover {
+  background-color: rgba(15, 10, 8, 0.94);
+}
+
+.gameover-panel {
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ir-signboard-alert {
+  background-color: var(--loco-red);
+  color: #FFF;
+  border-color: #FFF;
+}
+
+.gameover-heading {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+.gameover-desc {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--cream);
+}
+
+.gameover-score-box {
+  font-family: var(--font-pixel);
+  font-size: 18px;
+  color: var(--gold-light);
+  background-color: var(--laterite-pore);
+  border: 1px solid var(--laterite);
+  padding: 12px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   Clear Screen (Stamped Boarded Ticket)
+   ========================================================================== */
+
+.screen-clear {
+  background: radial-gradient(circle at center, rgba(31, 78, 156, 0.4) 0%, rgba(21, 21, 21, 0.95) 100%);
+}
+
+.clear-panel {
+  width: 100%;
+  max-width: 620px;
+}
+
+.boarded-ticket {
+  background-color: var(--cream);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 28px 24px 20px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  border: 2px solid var(--used-block);
+}
+
+.stamp-boarded {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 40px);
+  font-weight: 800;
+  color: var(--loco-red);
+  border: 4px solid var(--loco-red);
+  padding: 3px 14px;
+  border-radius: 6px;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+  letter-spacing: 3px;
+  pointer-events: none;
+}
+
+.ticket-top {
+  border-bottom: 2px dashed #999;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rail-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--laterite-dark);
+}
+
+.ticket-route {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.clear-title {
+  font-size: clamp(18px, 2.2vw, 21px);
+  font-weight: 800;
+  line-height: 1.3;
+  margin-bottom: 18px;
+  max-width: 55%;
+}
+
+.score-tally-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 14px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.tally-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.tally-value {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.tally-best-row {
+  border-top: 1px solid #CCC;
+  padding-top: 6px;
+  margin-top: 2px;
+  font-weight: 800;
+  color: var(--loco-red);
+}
+
+.tally-best-row .tally-value {
+  color: var(--loco-red);
+  font-size: 15px;
+}
+
+/* ==========================================================================
+   Accessibility & Responsive
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

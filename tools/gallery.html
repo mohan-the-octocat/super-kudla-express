@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Super Kudla Express — Visual Asset Gallery</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1600px;
+      height: 1000px;
+      overflow: hidden;
+      background: #181716;
+      color: #F3E3C3;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: row;
+    }
+    #stage-container {
+      width: 980px;
+      height: 1000px;
+      position: relative;
+      background: #201E1C;
+      border-right: 2px solid #383430;
+    }
+    #stage-canvas {
+      width: 980px;
+      height: 1000px;
+      display: block;
+    }
+    #stage-header {
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #FFD100;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+    #swatches-container {
+      width: 620px;
+      height: 1000px;
+      padding: 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #191817;
+    }
+    h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #FFD100;
+      border-bottom: 1px solid #3E3832;
+      padding-bottom: 4px;
+      margin-top: 4px;
+      margin-bottom: 6px;
+    }
+    .swatch-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .swatch-card {
+      background: #262422;
+      border: 1px solid #3E3832;
+      border-radius: 4px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .swatch-card img, .swatch-card canvas {
+      display: block;
+      border-radius: 2px;
+    }
+    .swatch-label {
+      font-size: 10px;
+      color: #B9B4AA;
+      margin-top: 4px;
+      text-align: center;
+      max-width: 90px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wide-card {
+      width: 180px;
+    }
+    .wide-card .swatch-label {
+      max-width: 170px;
+    }
+  </style>
+  <script src="../vendor/three.min.js"></script>
+  <script src="../assets/posters.js" onerror="/* posters.js optional */"></script>
+  <script src="../src/config.js"></script>
+  <script src="../src/textures.js"></script>
+  <script src="../src/models.js"></script>
+</head>
+<body>
+  <div id="stage-container">
+    <div id="stage-header">SUPER KUDLA EXPRESS — 3D MODELS (18 ASSETS)</div>
+    <canvas id="stage-canvas"></canvas>
+  </div>
+
+  <div id="swatches-container">
+    <h2>Block Textures (256x256)</h2>
+    <div class="swatch-grid" id="grid-blocks"></div>
+
+    <h2>Environment Textures (512x512)</h2>
+    <div class="swatch-grid" id="grid-env"></div>
+
+    <h2>Signage Boards</h2>
+    <div class="swatch-grid" id="grid-signage"></div>
+
+    <h2>Station Posters (512x768)</h2>
+    <div class="swatch-grid" id="grid-posters"></div>
+
+    <h2>HUD Icons (96x96 Canvas)</h2>
+    <div class="swatch-grid" id="grid-icons"></div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      const THREE = window.THREE;
+      const KUDLA = window.KUDLA || {};
+      const Textures = KUDLA.Textures;
+      const Models = KUDLA.Models;
+
+      // 1. Setup Three.js Stage
+      const canvas = document.getElementById('stage-canvas');
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(980, 1000);
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#1F1D1B');
+
+      const camera = new THREE.PerspectiveCamera(40, 980 / 1000, 0.1, 100);
+      camera.position.set(0, 8.5, 14.5);
+      camera.lookAt(0, 0.8, 0);
+
+      // Lighting
+      const hemiLight = new THREE.HemisphereLight('#CFE8FF', '#8A6A4A', 0.85);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight('#FFE2B0', 1.15);
+      dirLight.position.set(-12, 24, 18);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.left = -10;
+      dirLight.shadow.camera.right = 10;
+      dirLight.shadow.camera.top = 10;
+      dirLight.shadow.camera.bottom = -10;
+      dirLight.shadow.camera.near = 0.5;
+      dirLight.shadow.camera.far = 50;
+      scene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight('#FFFFFF', 0.35);
+      fillLight.position.set(12, 10, -12);
+      scene.add(fillLight);
+
+      // Neutral ground floor
+      const floorGeo = new THREE.PlaneGeometry(30, 20);
+      const floorMat = new THREE.MeshStandardMaterial({ color: '#2C2926', roughness: 0.9 });
+      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+      floorMesh.rotation.x = -Math.PI / 2;
+      floorMesh.receiveShadow = true;
+      scene.add(floorMesh);
+
+      // Helper to add label sprite above models
+      function addLabel(text, x, y, z) {
+        const labelSprite = Models.createScorePopup(text);
+        labelSprite.scale.set(1.1, 0.41, 1);
+        labelSprite.position.set(x, y, z);
+        scene.add(labelSprite);
+      }
+
+      // Add Pedestal disk
+      const pedestalGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.04, 24);
+      const pedestalMat = new THREE.MeshStandardMaterial({ color: '#383430', roughness: 0.7 });
+      function addPedestal(x, z) {
+        const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+        pedestal.position.set(x, 0.02, z);
+        pedestal.receiveShadow = true;
+        scene.add(pedestal);
+      }
+
+      const activeModels = [];
+
+      // ROW 1 (z = -3.5): 4 Blocks, 1 Shard, 1 Score Popup
+      const row1Z = -3.5;
+      const blockKinds = ['tile', 'mystery', 'used', 'laterite'];
+      const blockXCoords = [-4.0, -2.4, -0.8, 0.8];
+      blockKinds.forEach((kind, i) => {
+        const bx = blockXCoords[i];
+        addPedestal(bx, row1Z);
+        const block = Models.createBlock(kind);
+        // Blocks origin is centred, so position at y = 0.54 to sit on pedestal
+        block.position.set(bx, 0.54, row1Z);
+        scene.add(block);
+        addLabel(kind.toUpperCase(), bx, 1.4, row1Z);
+        activeModels.push(block);
+      });
+
+      // Shard
+      addPedestal(2.4, row1Z);
+      const shard = Models.createShard();
+      shard.position.set(2.4, 0.2, row1Z);
+      scene.add(shard);
+      addLabel('SHARD', 2.4, 1.0, row1Z);
+      activeModels.push(shard);
+
+      // Score Popup
+      addPedestal(4.0, row1Z);
+      const scoreSprite = Models.createScorePopup('100');
+      scoreSprite.position.set(4.0, 0.6, row1Z);
+      scene.add(scoreSprite);
+      addLabel('POPUP', 4.0, 1.3, row1Z);
+
+      // ROW 2 (z = -0.5): Cashew, 4 Items, Fireball
+      const row2Z = -0.5;
+      const row2XCoords = [-4.0, -2.4, -0.8, 0.8, 2.4, 4.0];
+
+      // Cashew
+      addPedestal(row2XCoords[0], row2Z);
+      const cashew = Models.createCashew();
+      cashew.position.set(row2XCoords[0], 0.04, row2Z);
+      scene.add(cashew);
+      addLabel('CASHEW', row2XCoords[0], 0.95, row2Z);
+      activeModels.push(cashew);
+
+      // Items: buns, gheeroast, gadbad, coconut
+      const itemTypes = ['buns', 'gheeroast', 'gadbad', 'coconut'];
+      itemTypes.forEach((type, i) => {
+        const ix = row2XCoords[i + 1];
+        addPedestal(ix, row2Z);
+        const item = Models.createItem(type);
+        item.position.set(ix, 0.04, row2Z);
+        scene.add(item);
+        addLabel(type.toUpperCase(), ix, 1.05, row2Z);
+        activeModels.push(item);
+      });
+
+      // Fireball
+      addPedestal(row2XCoords[5], row2Z);
+      const fireball = Models.createFireball();
+      fireball.position.set(row2XCoords[5], 0.04, row2Z);
+      scene.add(fireball);
+      addLabel('CHILLI', row2XCoords[5], 0.85, row2Z);
+      activeModels.push(fireball);
+
+      // ROW 3 (z = 2.8): 3 Enemies, Player at 3 Powers
+      const row3Z = 2.8;
+      const row3XCoords = [-4.0, -2.4, -0.8, 0.8, 2.4, 4.0];
+
+      // Enemies
+      const enemyTypes = ['crab', 'crow', 'chimney_crow'];
+      const enemyLabels = ['DENJI', 'CROW', 'CHIMNEY'];
+      enemyTypes.forEach((type, i) => {
+        const ex = row3XCoords[i];
+        addPedestal(ex, row3Z);
+        const enemy = Models.createEnemy(type);
+        enemy.position.set(ex, 0.04, row3Z);
+        scene.add(enemy);
+        addLabel(enemyLabels[i], ex, 1.15, row3Z);
+        activeModels.push(enemy);
+      });
+
+      // Player Powers: small, big, fire
+      const powers = ['small', 'big', 'fire'];
+      const powerLabels = ['P-SMALL', 'P-BIG', 'P-FIRE'];
+      powers.forEach((power, i) => {
+        const px = row3XCoords[i + 3];
+        addPedestal(px, row3Z);
+        const player = Models.createPlayer();
+        Models.setPlayerPower(player, power);
+        player.position.set(px, 0.04, row3Z);
+        scene.add(player);
+        const labelHeight = (power === 'small') ? 1.45 : 2.15;
+        addLabel(powerLabels[i], px, labelHeight, row3Z);
+        activeModels.push(player);
+      });
+
+      // 2. Render Texture Swatches to the DOM
+      function appendTextureCard(containerId, texture, label, width, height, extraClass) {
+        const container = document.getElementById(containerId);
+        if (!container || !texture || !texture.image) return;
+
+        const card = document.createElement('div');
+        card.className = 'swatch-card' + (extraClass ? ' ' + extraClass : '');
+
+        const img = document.createElement('img');
+        img.width = width;
+        img.height = height;
+        img.src = texture.image.toDataURL();
+        card.appendChild(img);
+
+        const lbl = document.createElement('div');
+        lbl.className = 'swatch-label';
+        lbl.textContent = label;
+        card.appendChild(lbl);
+
+        container.appendChild(card);
+      }
+
+      function appendCanvasCard(containerId, canvasEl, label) {
+        const container = document.getElementById(containerId);
+        if (!container || !canvasEl) return;
+
+        const card = document.createElement('div');
+        card.className = 'swatch-card';
+
+        const displayCanvas = document.createElement('canvas');
+        displayCanvas.width = 44;
+        displayCanvas.height = 44;
+        const ctx = displayCanvas.getContext('2d');
+        ctx.drawImage(canvasEl, 0, 0, 44, 44);
+        card.appendChild(displayCanvas);
+
+        const lbl = document.createElement('div');
+        lbl.className = 'swatch-label';
+        lbl.textContent = label;
+        card.appendChild(lbl);
+
+        container.appendChild(card);
+      }
+
+      // Blocks
+      appendTextureCard('grid-blocks', Textures.tileBlock(), 'Tile Block', 60, 60);
+      appendTextureCard('grid-blocks', Textures.mysteryBlock(), 'Mystery Block', 60, 60);
+      appendTextureCard('grid-blocks', Textures.usedBlock(), 'Used Block', 60, 60);
+      appendTextureCard('grid-blocks', Textures.laterite(), 'Laterite Stone', 60, 60);
+
+      // Environment
+      appendTextureCard('grid-env', Textures.platformFloor(), 'Platform Floor', 54, 54);
+      appendTextureCard('grid-env', Textures.tactileStrip(), 'Tactile Strip', 54, 54);
+      appendTextureCard('grid-env', Textures.ballast(), 'Ballast Stone', 54, 54);
+      appendTextureCard('grid-env', Textures.wallPlaster(), 'Wall Plaster', 54, 54);
+      appendTextureCard('grid-env', Textures.canopyUnderside(), 'Canopy Under', 54, 54);
+      appendTextureCard('grid-env', Textures.roofTiles(), 'Roof Tiles', 54, 54);
+      appendTextureCard('grid-env', Textures.boundaryWall(), 'Boundary Wall', 54, 54);
+      appendTextureCard('grid-env', Textures.water(), 'Water Ripples', 54, 54);
+
+      // Signage
+      appendTextureCard('grid-signage', Textures.stationNameBoard(), 'Station Name Board', 180, 68, 'wide-card');
+      appendTextureCard('grid-signage', Textures.textBoard(['PLATFORM 1', 'CHECKPOINT']), 'Text Board', 180, 45, 'wide-card');
+      appendTextureCard('grid-signage', Textures.ledBoard('12620 MATSYAGANDHA EXP'), 'LED Board', 180, 24, 'wide-card');
+
+      // Posters
+      const posterKeys = ['yakshagana', 'kambala', 'pilivesha', 'gadbad', 'panambur'];
+      posterKeys.forEach((key) => {
+        appendTextureCard('grid-posters', Textures.poster(key), key.toUpperCase(), 72, 108);
+      });
+
+      // Icons
+      const iconNames = [
+        'cashew', 'buns', 'gheeroast', 'gadbad', 'coconut',
+        'denji', 'crow', 'tile', 'mystery', 'laterite',
+      ];
+      iconNames.forEach((name) => {
+        appendCanvasCard('grid-icons', Textures.icon(name), name.toUpperCase());
+      });
+
+      // 3. Render Loop
+      let startTime = null;
+      function render(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const time = (timestamp - startTime) * 0.001;
+
+        activeModels.forEach((model) => {
+          const kind = model.userData.kind;
+          if (kind === 'enemy') {
+            Models.animate(model, time, (model.userData.enemyType === 'crab') ? 'walk' : 'fly');
+          } else if (kind === 'player') {
+            Models.animate(model, time, 'idle', 0);
+          } else {
+            Models.animate(model, time);
+          }
+        });
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(render);
+      }
+
+      // Initial synchronous render
+      renderer.render(scene, camera);
+      requestAnimationFrame(render);
+    })();
+  </script>
+</body>
+</html>

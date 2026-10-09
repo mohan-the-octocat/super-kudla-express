@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Kudla Express — Catch the Matsyagandha Express!</title>
+  <meta name="description" content="Platform 1, Mangaluru Central. The 12620 Matsyagandha Express to Mumbai leaves in four minutes. A first-person 3D Mario-style platformer.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Noto+Sans+Devanagari:wght@600;800&family=Noto+Sans+Kannada:wght@600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="game-root" class="game-root">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Flash overlay for hurt/power/star effects -->
+    <div id="hud-flash" class="hud-flash flash-none" aria-hidden="true"></div>
+
+    <!-- Centred crosshair dot for first-person targeting -->
+    <div id="hud-crosshair" class="hud-crosshair" aria-hidden="true"></div>
+
+    <!-- HUD Overlay (hidden until the game shows it) -->
+    <header id="hud" class="hud is-hidden" aria-label="Game HUD">
+      <div class="hud-top-bar">
+        <div class="hud-group hud-group-score">
+          <span class="hud-label">SCORE</span>
+          <span id="hud-score" class="hud-value">000000</span>
+        </div>
+        <div class="hud-group hud-group-cashews">
+          <span class="hud-label">CASHEWS</span>
+          <span id="hud-cashews" class="hud-value">x00</span>
+        </div>
+        <div class="hud-group hud-group-world">
+          <span class="hud-label">LOCATION</span>
+          <span id="hud-world" class="hud-value">PF-1</span>
+        </div>
+        <div class="hud-group hud-group-time">
+          <span class="hud-label">TIME</span>
+          <span id="hud-time" class="hud-value">240</span>
+        </div>
+        <div class="hud-group hud-group-lives">
+          <span class="hud-label">LIVES</span>
+          <span id="hud-lives" class="hud-value">x3</span>
+        </div>
+        <div class="hud-group hud-group-power">
+          <span class="hud-label">POWER</span>
+          <span id="hud-power" class="hud-value">SMALL</span>
+        </div>
+        <div class="hud-group hud-group-status">
+          <span id="hud-camera" class="hud-tag">1ST</span>
+          <span id="hud-mute" class="hud-tag">SOUND</span>
+        </div>
+      </div>
+
+      <!-- Rail Line Progress Bar -->
+      <div id="hud-progress" class="hud-progress-bar" aria-label="Platform 1 progress">
+        <div class="rail-track">
+          <span class="rail-station start-station">START</span>
+          <span class="rail-checkpoint-marker">CHECKPOINT 55%</span>
+          <span class="rail-station end-station">12620 EXP</span>
+          <div id="hud-progress-fill" class="rail-fill" style="width: 0%;"></div>
+          <div id="hud-progress-marker" class="rail-player-marker" style="left: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Toast Ticker -->
+      <div id="hud-toast" class="hud-toast is-hidden" role="status" aria-live="polite"></div>
+    </header>
+
+    <!-- Screens -->
+    <!-- Loading Screen (has is-active in markup) -->
+    <section id="screen-loading" class="screen screen-loading is-active" aria-label="Loading screen">
+      <div class="loading-panel">
+        <div class="ir-signboard ir-signboard-small">
+          <div class="kannada-text">ಮಂಗಳೂರು ಸೆಂಟ್ರಲ್</div>
+          <div class="devanagari-text">मंगलूरु सेंट्रल</div>
+          <div class="latin-text">MANGALURU CENTRAL</div>
+        </div>
+        <h2 class="loading-title">SUPER KUDLA EXPRESS</h2>
+        <div class="loading-bar-wrapper">
+          <div id="loading-bar" class="loading-bar" style="width: 0%;"></div>
+        </div>
+        <p id="loading-label" class="loading-label">Preparing Platform 1...</p>
+      </div>
+    </section>
+
+    <!-- Title Screen -->
+    <section id="screen-title" class="screen screen-title" aria-label="Title screen">
+      <div class="title-backdrop"></div>
+      <div class="title-container">
+        <!-- Main IR Signboard Title (Single H1 per page) -->
+        <header class="title-header">
+          <div class="ir-signboard ir-signboard-main">
+            <div class="signboard-top-row">
+              <span class="signboard-kannada">ಮಂಗಳೂರು ಸೆಂಟ್ರಲ್ • ಕುಡ್ಲ</span>
+              <span class="signboard-code">MAQ</span>
+            </div>
+            <h1 class="signboard-title">SUPER KUDLA EXPRESS <span class="kannada-badge">ಕುಡ್ಲ</span></h1>
+            <p class="signboard-tagline">Catch the Matsyagandha Express from Mangaluru Central!</p>
+          </div>
+        </header>
+
+        <div class="title-body">
+          <!-- Column 1: Departure Alert & Start Ticket -->
+          <div class="title-col title-col-story">
+            <article class="story-card">
+              <h2 class="card-heading">DEPARTURE ALERT</h2>
+              <p class="story-text">Platform 1, Mangaluru Central. The 12620 Matsyagandha Express to Mumbai leaves in four minutes, and you are at the wrong end of the platform. Bump Goli Baje blocks for golden cashews and Kudla snacks, stomp the crabs, dodge the crows, and pass the guard's green flag before the train pulls out.</p>
+            </article>
+
+            <div class="ticket-action-wrapper">
+              <button id="btn-start" class="edmondson-ticket" type="button">
+                <span class="ticket-header">SOUTHERN RAILWAY • PLATFORM TICKET</span>
+                <span class="ticket-serial">No. 12620</span>
+                <span class="ticket-main-action">START BOARDING</span>
+                <span class="ticket-validity">VALID FOR IMMEDIATE DEPARTURE • PRESS ENTER</span>
+              </button>
+              <div id="title-best" class="title-best-record">BEST SCORE: 000000</div>
+            </div>
+          </div>
+
+          <!-- Column 2: Controls Table -->
+          <div class="title-col title-col-controls">
+            <section class="controls-card" aria-label="Game controls">
+              <h2 class="card-heading">TRAVEL CONTROLS</h2>
+              <table class="controls-table">
+                <thead>
+                  <tr>
+                    <th>Action</th>
+                    <th>Keyboard / Mouse</th>
+                    <th>Gamepad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Move</td><td>WASD or arrow keys</td><td>Left stick</td></tr>
+                  <tr><td>Look</td><td>Mouse (pointer lock; click to lock)</td><td>Right stick</td></tr>
+                  <tr><td>Jump (hold = higher)</td><td>Space</td><td>A (0)</td></tr>
+                  <tr><td>Run</td><td>Shift (hold)</td><td>X (2) held</td></tr>
+                  <tr><td>Throw chilli</td><td>F or left click</td><td>B (1)</td></tr>
+                  <tr><td>Camera 1st/3rd</td><td>V</td><td>Y (3)</td></tr>
+                  <tr><td>Mute</td><td>M</td><td>-</td></tr>
+                  <tr><td>Pause</td><td>Esc or P</td><td>Start (9)</td></tr>
+                  <tr><td>Confirm</td><td>Enter</td><td>A</td></tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+
+          <!-- Column 3: Platform Legend Grid -->
+          <div class="title-col title-col-legend">
+            <section class="legend-card" aria-label="Station items and hazards">
+              <h2 class="card-heading">PLATFORM LEGEND</h2>
+              <div id="title-legend" class="legend-grid">
+                <!-- Items populated with canvas icons by hud.js when available -->
+                <div class="legend-item" data-item="cashew">
+                  <div class="legend-icon-slot" data-icon="cashew"><span class="icon-text-badge">CASHEW</span></div>
+                  <div class="legend-text"><strong>Golden Cashew</strong><span>Kudla's famous cashews. 100 = extra life.</span></div>
+                </div>
+                <div class="legend-item" data-item="buns">
+                  <div class="legend-icon-slot" data-icon="buns"><span class="icon-text-badge">BUNS</span></div>
+                  <div class="legend-text"><strong>Mangalore Buns</strong><span>Sweet banana buns. You grow taller.</span></div>
+                </div>
+                <div class="legend-item" data-item="gheeroast">
+                  <div class="legend-icon-slot" data-icon="gheeroast"><span class="icon-text-badge">ROAST</span></div>
+                  <div class="legend-text"><strong>Ghee Roast</strong><span>Fiery! Throw chillies with F or click.</span></div>
+                </div>
+                <div class="legend-item" data-item="gadbad">
+                  <div class="legend-icon-slot" data-icon="gadbad"><span class="icon-text-badge">GADBAD</span></div>
+                  <div class="legend-text"><strong>Gadbad Ice Cream</strong><span>Layers of joy. 10 seconds of invincibility.</span></div>
+                </div>
+                <div class="legend-item" data-item="coconut">
+                  <div class="legend-icon-slot" data-icon="coconut"><span class="icon-text-badge">BONDA</span></div>
+                  <div class="legend-text"><strong>Tender Coconut (Bonda)</strong><span>Extra life.</span></div>
+                </div>
+                <div class="legend-item" data-item="tile">
+                  <div class="legend-icon-slot" data-icon="tile"><span class="icon-text-badge">TILE</span></div>
+                  <div class="legend-text"><strong>Mangalore Tile Block</strong><span>Bump when small, smash when big.</span></div>
+                </div>
+                <div class="legend-item" data-item="mystery">
+                  <div class="legend-icon-slot" data-icon="mystery"><span class="icon-text-badge">GOLI</span></div>
+                  <div class="legend-text"><strong>Goli Baje Block</strong><span>ದಾದ? What's inside?</span></div>
+                </div>
+                <div class="legend-item" data-item="denji">
+                  <div class="legend-icon-slot" data-icon="denji"><span class="icon-text-badge">DENJI</span></div>
+                  <div class="legend-text"><strong>Denji (Crab)</strong><span>Scuttles sideways. Stomp it.</span></div>
+                </div>
+                <div class="legend-item" data-item="crow">
+                  <div class="legend-icon-slot" data-icon="crow"><span class="icon-text-badge">CROW</span></div>
+                  <div class="legend-text"><strong>Station Crow</strong><span>Swoops for your snacks.</span></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pause Screen (Amber LED Departure Board) -->
+    <section id="screen-pause" class="screen screen-pause" aria-label="Pause menu">
+      <div class="led-board-panel">
+        <div class="led-header">
+          <span class="led-status-dot"></span>
+          <h2 class="led-title">12620 MATSYAGANDHA EXPRESS • SERVICE HALTED</h2>
+        </div>
+        <div class="led-content">
+          <div class="led-settings-grid">
+            <div class="setting-row">
+              <label for="opt-sensitivity" class="setting-label">MOUSE SENSITIVITY</label>
+              <input id="opt-sensitivity" class="led-slider" type="range" min="0.2" max="3.0" step="0.1" value="1.0">
+            </div>
+            <div class="setting-row">
+              <label for="opt-invert" class="setting-label">INVERT PITCH (Y-AXIS)</label>
+              <input id="opt-invert" class="led-checkbox" type="checkbox">
+            </div>
+            <div class="setting-row">
+              <label for="opt-mute" class="setting-label">MUTE AUDIO</label>
+              <input id="opt-mute" class="led-checkbox" type="checkbox">
+            </div>
+            <div class="setting-row">
+              <label for="opt-camera-third" class="setting-label">THIRD-PERSON CAMERA</label>
+              <input id="opt-camera-third" class="led-checkbox" type="checkbox">
+            </div>
+          </div>
+          <div class="led-buttons-row">
+            <button id="btn-resume" class="ir-button ir-button-primary" type="button">RESUME JOURNEY [ESC / ENTER]</button>
+            <button id="btn-restart-pause" class="ir-button ir-button-secondary" type="button">RESTART FROM PLATFORM 1</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dead Screen -->
+    <section id="screen-dead" class="screen screen-dead" aria-label="Life lost screen">
+      <div class="dead-panel">
+        <h2 id="dead-message" class="dead-title">AYYO!</h2>
+        <p id="dead-lives" class="dead-subtitle">Lives left: 2</p>
+        <p class="dead-prompt">Respawning at checkpoint...</p>
+      </div>
+    </section>
+
+    <!-- Game Over Screen -->
+    <section id="screen-gameover" class="screen screen-gameover" aria-label="Game over screen">
+      <div class="gameover-panel">
+        <div class="ir-signboard ir-signboard-alert">
+          <h2 class="gameover-heading">TRAIN DEPARTED</h2>
+        </div>
+        <p id="gameover-message" class="gameover-desc">MISSED THE TRAIN! Better catch a private bus from Hampankatta.</p>
+        <div id="gameover-score" class="gameover-score-box">FINAL SCORE: 000000</div>
+        <button id="btn-restart-over" class="ir-button ir-button-primary" type="button">BUY NEW TICKET [ENTER]</button>
+      </div>
+    </section>
+
+    <!-- Clear Screen (Stamped Boarded Ticket) -->
+    <section id="screen-clear" class="screen screen-clear" aria-label="Level complete screen">
+      <div class="clear-panel">
+        <div class="boarded-ticket">
+          <div class="stamp-boarded" aria-hidden="true">BOARDED</div>
+          <div class="ticket-top">
+            <span class="rail-title">SOUTHERN RAILWAY • PASSENGER RECEIPT</span>
+            <span class="ticket-route">MANGALURU CENTRAL (MAQ) → MUMBAI LTT</span>
+          </div>
+          <h2 class="clear-title">BOARDED! You caught the Matsyagandha Express.</h2>
+          <div class="score-tally-grid">
+            <div class="tally-row">
+              <span class="tally-label">LEVEL SCORE</span>
+              <span id="clear-score" class="tally-value">000000</span>
+            </div>
+            <div class="tally-row">
+              <span class="tally-label">TIME BONUS (50 pts/sec)</span>
+              <span id="clear-time-bonus" class="tally-value">0</span>
+            </div>
+            <div class="tally-row">
+              <span class="tally-label">FLAGPOLE BONUS</span>
+              <span id="clear-flag-bonus" class="tally-value">0</span>
+            </div>
+            <div class="tally-row tally-best-row">
+              <span class="tally-label">RECORD SCORE</span>
+              <span id="clear-best" class="tally-value">000000</span>
+            </div>
+          </div>
+          <button id="btn-restart-clear" class="ir-button ir-button-primary" type="button">TRAVEL AGAIN [ENTER]</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Scripts in EXACT Section 3.4 order -->
+  <script src="vendor/three.min.js"></script>
+  <script src="assets/posters.js"></script>
+  <script src="src/config.js"></script>
+  <script src="src/level.js"></script>
+  <script src="src/physics.js"></script>
+  <script src="src/textures.js"></script>
+  <script src="src/models.js"></script>
+  <script src="src/scenery.js"></script>
+  <script src="src/audio.js"></script>
+  <script src="src/input.js"></script>
+  <script src="src/hud.js"></script>
+  <script src="src/game.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

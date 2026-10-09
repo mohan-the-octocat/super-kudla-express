@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Super Kudla Express — Scenery 3D Environment Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #181716;
+      color: #F3E3C3;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    #viewport-container {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    #viewport-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #hud-overlay {
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      pointer-events: none;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.85);
+    }
+    h1 {
+      font-size: 20px;
+      color: #FFD100;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .info-line {
+      font-size: 13px;
+      color: #D8D3C8;
+      margin-bottom: 2px;
+    }
+    #controls-panel {
+      position: absolute;
+      bottom: 14px;
+      left: 20px;
+      display: flex;
+      gap: 8px;
+      background: rgba(24, 23, 22, 0.85);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #3E3832;
+    }
+    .preset-btn {
+      background: #2A2624;
+      color: #FFD100;
+      border: 1px solid #554D44;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .preset-btn.active, .preset-btn:hover {
+      background: #8E2F22;
+      color: #FFFFFF;
+      border-color: #FFD100;
+    }
+  </style>
+  <script src="../vendor/three.min.js"></script>
+  <script src="../assets/posters.js" onerror="/* posters.js optional */"></script>
+  <script src="../src/config.js"></script>
+  <script src="../src/level.js"></script>
+  <script src="../src/physics.js"></script>
+  <script src="../src/textures.js"></script>
+  <script src="../src/models.js"></script>
+  <script src="../src/scenery.js"></script>
+</head>
+<body>
+  <div id="viewport-container">
+    <canvas id="viewport-canvas"></canvas>
+    <div id="hud-overlay">
+      <h1 id="title-label">MANGALURU CENTRAL — PLATFORM 1</h1>
+      <div class="info-line" id="camera-label">Preset: start</div>
+      <div class="info-line" id="metrics-label">Draw Calls: counting...</div>
+      <div class="info-line" id="audio-label">Horn: off | Rumble: 0.00</div>
+    </div>
+    <div id="controls-panel">
+      <a href="?cam=start" class="preset-btn" id="btn-start">Start</a>
+      <a href="?cam=kiln" class="preset-btn" id="btn-kiln">Kiln</a>
+      <a href="?cam=drain" class="preset-btn" id="btn-drain">Drain</a>
+      <a href="?cam=steps" class="preset-btn" id="btn-steps">Steps</a>
+      <a href="?cam=flag" class="preset-btn" id="btn-flag">Flag</a>
+      <a href="?cam=tracks&t=30" class="preset-btn" id="btn-tracks">Tracks</a>
+      <a href="?cam=aerial" class="preset-btn" id="btn-aerial">Aerial</a>
+      <a href="?cam=posterA" class="preset-btn" id="btn-posterA">Poster A</a>
+      <a href="?cam=posterB" class="preset-btn" id="btn-posterB">Poster B</a>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      const THREE = window.THREE;
+      const KUDLA = window.KUDLA || {};
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const camParam = urlParams.get('cam') || 'start';
+      const defaultTime = (camParam === 'tracks') ? 30 : 0;
+      const targetTime = urlParams.get('t') !== null ? parseFloat(urlParams.get('t')) : defaultTime;
+
+      // Highlight active button
+      const activeBtn = document.getElementById('btn-' + camParam);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+      }
+
+      // Camera preset definitions per DESIGN.md 7.3 & 4
+      const PRESETS = {
+        start: { eye: { x: 2, y: 1.65, z: 0 }, yaw: 0, pitch: 0 },
+        kiln: { eye: { x: 30, y: 1.65, z: 2 }, yaw: 0, pitch: 0 },
+        drain: { eye: { x: 66, y: 1.65, z: 0 }, yaw: 0, pitch: 0 },
+        steps: { eye: { x: 146, y: 1.65, z: 0 }, yaw: 0, pitch: 0 },
+        flag: { eye: { x: 196, y: 1.65, z: -1 }, yaw: 0, pitch: 0 },
+        tracks: { eye: { x: 120, y: 4, z: -2 }, yaw: Math.PI / 2, pitch: 0 }, // looking +Z toward tracks
+        aerial: { eye: { x: 100, y: 45, z: 70 }, lookAt: { x: 110, y: 0, z: 0 } },
+        posterA: { eye: { x: 3, y: 1.9, z: -1.0 }, yaw: -Math.PI / 2, pitch: 0 },
+        posterB: { eye: { x: 96, y: 1.9, z: -1.0 }, yaw: -Math.PI / 2, pitch: 0 },
+      };
+
+      const preset = PRESETS[camParam] || PRESETS.start;
+
+      // Renderer setup
+      const canvas = document.getElementById('viewport-canvas');
+      const width = window.innerWidth || 1280;
+      const height = window.innerHeight || 720;
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, width / height, 0.05, 900);
+
+      // Camera rotation and position strictly per DESIGN.md §4
+      camera.rotation.order = 'YXZ';
+      camera.position.set(preset.eye.x, preset.eye.y, preset.eye.z);
+      if (preset.lookAt) {
+        camera.lookAt(preset.lookAt.x, preset.lookAt.y, preset.lookAt.z);
+      } else {
+        camera.rotation.y = -(preset.yaw + Math.PI / 2);
+        camera.rotation.x = preset.pitch || 0;
+      }
+
+      // Build level and scenery
+      const level = KUDLA.Level.create();
+      const scenery = KUDLA.Scenery.build(scene, level);
+
+      // Count draw calls
+      let drawCalls = 0;
+      scene.traverse((node) => {
+        if (node.isMesh || node.isInstancedMesh || node.isSprite || node.isLine || node.isLineSegments) {
+          drawCalls++;
+        }
+      });
+
+      const cameraLabel = document.getElementById('camera-label');
+      if (cameraLabel) {
+        cameraLabel.textContent = 'Preset: ' + camParam + ' | Eye: (' + preset.eye.x + ', ' + preset.eye.y + ', ' + preset.eye.z + ')';
+      }
+      const metricsLabel = document.getElementById('metrics-label');
+      if (metricsLabel) {
+        metricsLabel.textContent = 'Draw Calls: ' + drawCalls + ' (< 650 budget)';
+      }
+
+      // Fast-forward update simulation to targetTime
+      const simulationDelta = 1 / 60;
+      const simulationSteps = Math.round(targetTime / simulationDelta);
+      let latestStatus = { horn: false, rumble: 0 };
+      for (let stepIndex = 0; stepIndex < simulationSteps; stepIndex++) {
+        latestStatus = scenery.update(simulationDelta, stepIndex * simulationDelta, camera.position);
+      }
+      latestStatus = scenery.update(0, targetTime, camera.position);
+
+      const audioLabel = document.getElementById('audio-label');
+      if (audioLabel) {
+        audioLabel.textContent = 'Horn: ' + (latestStatus.horn ? 'ACTIVE' : 'off') + ' | Rumble: ' + latestStatus.rumble.toFixed(2);
+      }
+
+      // Synchronous render for headless screenshot
+      renderer.render(scene, camera);
+
+      // Interactive render loop if running in browser
+      let lastTimestamp = null;
+      let elapsedTime = targetTime;
+      function renderLoop(timestamp) {
+        if (lastTimestamp !== null) {
+          const frameDelta = Math.min((timestamp - lastTimestamp) * 0.001, 0.05);
+          elapsedTime += frameDelta;
+          const status = scenery.update(frameDelta, elapsedTime, camera.position);
+          if (audioLabel) {
+            audioLabel.textContent = 'Horn: ' + (status.horn ? 'ACTIVE' : 'off') + ' | Rumble: ' + status.rumble.toFixed(2);
+          }
+        }
+        lastTimestamp = timestamp;
+        renderer.render(scene, camera);
+        requestAnimationFrame(renderLoop);
+      }
+      requestAnimationFrame(renderLoop);
+
+      window.addEventListener('resize', () => {
+        const newWidth = window.innerWidth;
+        const newHeight = window.innerHeight;
+        camera.aspect = newWidth / newHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(newWidth, newHeight);
+      });
+    })();
+  </script>
+</body>
+</html>

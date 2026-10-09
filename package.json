@@ -1,0 +1,9 @@
+{
+  "name": "super-kudla-express",
+  "private": true,
+  "version": "1.0.0",
+  "description": "First-person Mario-style platformer at Mangaluru Central",
+  "scripts": {
+    "test": "node --test"
+  }
+}
